@@ -5,7 +5,21 @@ import feedparser
 import unicodedata
 import re
 import sys
+import zipfile
 from PIL import Image, ImageDraw, ImageFont
+
+def zip_folder(folder_path, output_path):
+    """Crée une archive zip à partir d'un dossier."""
+    try:
+        with zipfile.ZipFile(output_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            for root, dirs, files in os.walk(folder_path):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    arcname = os.path.relpath(file_path, folder_path)
+                    zipf.write(file_path, arcname)
+        print(f"Dossier zippé avec succès : {output_path}")
+    except Exception as e:
+        print(f"Erreur lors de la création du fichier zip : {e}")
 
 def clean_filename(title):
     nfkd_form = unicodedata.normalize('NFKD', title)
@@ -126,6 +140,12 @@ def download_podcast(rss_url):
         shutil.rmtree(main_dir)
     
     os.makedirs(main_dir)
+
+    # Ajouter un fichier main-title.txt contenant le nom du podcast
+    main_title_path = os.path.join(main_dir, 'main-title.txt')
+    with open(main_title_path, 'w', encoding='utf-8') as f:
+        f.write(podcast_title)
+
     main_image_path = os.path.join(main_dir, 'main-title.png')
     cover_image_path = os.path.join(main_dir, 'cover.png')
     if podcast_image_url:
@@ -141,16 +161,15 @@ def download_podcast(rss_url):
     episodes = feed.entries
     groups = [episodes[i:i + 8] for i in range(0, len(episodes), 8)]
     
-   # Exemple d'appel avec un index de couleur
-    for i, group in enumerate(groups):
-        group_dir = os.path.join(zero_dir, str(i))
+    for group_index, group in enumerate(groups):
+        group_dir = os.path.join(zero_dir, str(group_index))
         os.makedirs(group_dir, exist_ok=True)
         with open(os.path.join(group_dir, 'title.txt'), 'w', encoding='utf-8') as f:
-            f.write(f"partie {i + 1}")
+            f.write(f"partie {group_index + 1}")
         episode_titles = "\n".join([clean_title(ep.title) for ep in group])
-
-        # Créer l'image avec une couleur de fond différente à chaque fois
-        create_text_image(os.path.join(group_dir, 'title.png'), episode_titles, font_path="Pacifico-Regular.ttf", color_index=i)
+        
+        # Créer l'image avec la liste des épisodes
+        create_text_image(os.path.join(group_dir, 'title.png'), episode_titles, font_path="Pacifico-Regular.ttf", color_index=group_index)
         
         for episode_index, entry in enumerate(group):
             mp3_url = next((link.href for link in entry.links if link.type == 'audio/mpeg'), None)
@@ -169,6 +188,19 @@ def download_podcast(rss_url):
                 episode_image_path = os.path.join(episode_subdir, 'title.png')
                 download_file(episode_image_url, episode_image_path)
                 resize_image(episode_image_path, episode_image_path)  # Redimensionner l'image de l'épisode
+
+    # Créer un fichier zip du dossier principal
+    zip_path = f"{main_dir}.zip"
+    zip_folder(main_dir, zip_path)
+
+    # Supprimer le dossier source après zippage
+    try:
+        #shutil.rmtree(main_dir)
+        print(f"Dossier supprimé après zippage : {main_dir}")
+    except Exception as e:
+        print(f"Erreur lors de la suppression du dossier : {e}")
+
+
 
 # Récupérer l'URL du podcast depuis la ligne de commande
 if len(sys.argv) != 2:
