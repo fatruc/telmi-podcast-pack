@@ -126,7 +126,7 @@ def create_text_image(output_path, text, size=(640, 480), font_path="Pacifico-Re
 
 def clean_title(title):
     # Supprimer le texte avant le premier "-" ou ":" dans le titre
-    title = re.split(r'[:\-]', title, maxsplit=1)[-1].strip()
+   # title = re.split(r'[:\-]', title, maxsplit=1)[-1].strip()
     return title
 
 def download_podcast(rss_url):
@@ -145,6 +145,9 @@ def download_podcast(rss_url):
     main_title_path = os.path.join(main_dir, 'main-title.txt')
     with open(main_title_path, 'w', encoding='utf-8') as f:
         f.write(podcast_title)
+    
+    # Liste pour stocker tous les titres d'épisodes
+    all_episode_titles = []
 
     main_image_path = os.path.join(main_dir, 'main-title.png')
     cover_image_path = os.path.join(main_dir, 'cover.png')
@@ -168,6 +171,9 @@ def download_podcast(rss_url):
             f.write(f"partie {group_index + 1}")
         episode_titles = "\n".join([clean_title(ep.title) for ep in group])
         
+        # Ajouter les titres des épisodes à la liste principale
+        all_episode_titles.extend([clean_title(ep.title) for ep in group])
+
         # Créer l'image avec la liste des épisodes
         create_text_image(os.path.join(group_dir, 'title.png'), episode_titles, font_path="Pacifico-Regular.ttf", color_index=group_index)
         
@@ -180,7 +186,7 @@ def download_podcast(rss_url):
             with open(os.path.join(episode_subdir, 'title.txt'), 'w', encoding='utf-8') as f:
                 f.write(clean_title(entry.title))
             mp3_path = os.path.join(episode_subdir, 'story.mp3')
-            download_file(mp3_url, mp3_path)
+           # download_file(mp3_url, mp3_path)
 
             # Télécharger l'image spécifique à cet épisode
             episode_image_url = entry.get('image', {}).get('href')
@@ -188,6 +194,11 @@ def download_podcast(rss_url):
                 episode_image_path = os.path.join(episode_subdir, 'title.png')
                 download_file(episode_image_url, episode_image_path)
                 resize_image(episode_image_path, episode_image_path)  # Redimensionner l'image de l'épisode
+
+    # Créer un fichier episodes.txt contenant la liste de tous les épisodes
+    episodes_path = os.path.join(main_dir, 'episodes.txt')
+    with open(episodes_path, 'w', encoding='utf-8') as f:
+        f.write("\n".join(all_episode_titles))
 
     # Créer un fichier zip du dossier principal
     zip_path = f"{main_dir}.zip"
