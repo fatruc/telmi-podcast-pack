@@ -112,6 +112,12 @@ python scrapper_radiofrance.py https://www.radiofrance.fr/franceinter/podcasts/u
 python my-telmi-podcast.py https://radio-france-rss.aerion.workers.dev/rss/d555ed4e-dbe5-4908-912e-b3169f9ceede clean_strings generate_audio
 ```
 
+### les odyssés
+```bash
+python scrapper_radiofrance.py https://www.radiofrance.fr/franceinter/podcasts/les-odyssees
+python my-telmi-podcast.py https://radio-france-rss.aerion.workers.dev/rss/c361798b-d6e3-4282-ba0a-ebb051b9e424 clean_strings generate_audio
+```
+
 # Contributions
 Si vous souhaitez contribuer à ce projet, n'hésitez pas à soumettre des pull requests. Vous pouvez également ouvrir des issues pour signaler des bugs ou des suggestions d'amélioration.
 
