@@ -3,15 +3,33 @@ from bs4 import BeautifulSoup
 from PIL import Image
 from io import BytesIO
 import os
-import xml.etree.ElementTree as ET
-
-# Définition des URL de manière statique
-RSS_URL = "https://radio-france-rss.aerion.workers.dev/rss/d555ed4e-dbe5-4908-912e-b3169f9ceede"
-BASE_URL = "https://www.radiofrance.fr/franceinter/podcasts/une-histoire-et-oli?p="
+import csv
+import argparse
 
 # Dossiers pour les images et les fichiers audio
 os.makedirs('images', exist_ok=True)
 os.makedirs('audio', exist_ok=True)
+
+# Nom du fichier de mapping
+MAPPING_FILE = 'mapping.csv'
+
+def initialize_mapping_file():
+    """Crée le fichier de mapping s'il n'existe pas, avec encodage UTF-8 BOM pour compatibilité avec Excel."""
+    if not os.path.isfile(MAPPING_FILE):
+        with open(MAPPING_FILE, mode='w', newline='', encoding='utf-8-sig') as file:
+            writer = csv.writer(file, delimiter=';')
+            writer.writerow(['Nom modifié', 'Nom original'])  # Créer l'en-tête avec les colonnes 'Nom modifié' et 'Nom original'
+
+def add_to_mapping_file(safe_title, original_title):
+    """Ajoute une ligne au fichier de mapping si le fichier n'existe pas déjà."""
+    with open(MAPPING_FILE, mode='r', newline='', encoding='utf-8-sig') as file:
+        reader = csv.DictReader(file, delimiter=';')
+        existing_files = {row['Nom modifié'] for row in reader}
+
+    if safe_title not in existing_files:
+        with open(MAPPING_FILE, mode='a', newline='', encoding='utf-8-sig') as file:
+            writer = csv.writer(file, delimiter=';')
+            writer.writerow([safe_title, original_title])  # Ajouter la ligne avec le nom modifié et le nom original
 
 def file_exists(title, file_type):
     """Vérifie si un fichier (image ou audio) existe déjà."""
@@ -20,31 +38,15 @@ def file_exists(title, file_type):
     file_path = f'{file_type}/{safe_title}.{file_extension}'
     return os.path.isfile(file_path)
 
-def get_audio_info_from_rss(rss_url):
-    """Récupère les informations audio depuis un flux RSS."""
-    response = requests.get(rss_url)
-    root = ET.fromstring(response.content)
-    audio_info = {}
-    
-    for item in root.findall('.//item'):
-        title = item.find('title').text
-        audio_url = item.find('enclosure').attrib['url']
-        audio_info[title] = audio_url
-    
-    return audio_info
-
-def download_episodes(rss_url):
+def download_episodes(base_url):
     """Étape 1 : Téléchargement des images et des audios des épisodes."""
     page_number = 1
     total_file_count = 0
     encountered_titles = set()  # Ensemble pour suivre les titres rencontrés
 
-    # Obtenir les informations audio à partir du flux RSS
-    audio_info = get_audio_info_from_rss(rss_url)
-
     while True:
         # Construire l'URL de la page en cours
-        url = f"{BASE_URL}{page_number}"
+        url = f"{base_url}{page_number}"
         print(f"Traitement de la page {page_number}...")
 
         # Effectuer une requête GET pour récupérer le contenu de la page
@@ -57,8 +59,6 @@ def download_episodes(rss_url):
         # Si aucune épisode n'est trouvé, sortir de la boucle
         if not episodes:
             break
-
-        page_file_count = 0  # Compteur de fichiers pour cette page
 
         # Parcourir chaque épisode
         for item in episodes.find_all('li', class_='Collection-section-items-item'):
@@ -76,6 +76,7 @@ def download_episodes(rss_url):
                 
                 encountered_titles.add(title)  # Ajouter le titre à l'ensemble
 
+                # Créer une version sécurisée du titre pour le nom de fichier
                 safe_title = "".join(x for x in title if x.isalnum() or x in (" ", "_")).rstrip()
 
                 # Vérifier et télécharger l'image
@@ -84,109 +85,57 @@ def download_episodes(rss_url):
                     img_response = requests.get(img_src)
                     img = Image.open(BytesIO(img_response.content))
 
-                    # Redimensionner l'image
+                    # Convertir l'image en RGB si elle est en mode RGBA
+                    if img.mode == 'RGBA':
+                        img = img.convert('RGB')
+
+                    # Redimensionner l'image tout en maintenant le ratio
+                    frame_width, frame_height = 640, 480
                     aspect_ratio = img.width / img.height
-                    new_height = 480
-                    new_width = int(aspect_ratio * new_height)
+
+                    if aspect_ratio > (frame_width / frame_height):
+                        # L'image est plus large que le cadre : ajuster à la largeur
+                        new_width = frame_width
+                        new_height = int(new_width / aspect_ratio)
+                    else:
+                        # L'image est plus haute ou carrée : ajuster à la hauteur
+                        new_height = frame_height
+                        new_width = int(new_height * aspect_ratio)
+
                     img = img.resize((new_width, new_height), Image.LANCZOS)
 
-                    # Tronquer l'image si la largeur dépasse 640px
-                    if new_width > 640:
-                        left = (new_width - 640) // 2
-                        right = left + 640
-                        img = img.crop((left, 0, right, new_height))
+                    # Créer une image de fond noir
+                    canvas = Image.new("RGB", (frame_width, frame_height), (0, 0, 0))
 
-                    img.save(img_filename, 'JPEG', quality=100)
+                    # Centrer l'image redimensionnée sur le fond
+                    x_offset = (frame_width - new_width) // 2
+                    y_offset = (frame_height - new_height) // 2
+                    canvas.paste(img, (x_offset, y_offset))
+
+                    # Sauvegarder l'image finale
+                    canvas.save(img_filename, "JPEG", quality=100)
+                    
                     print(f"Téléchargé : {img_filename}")
                     total_file_count += 1
 
-                # Vérifier et télécharger l'audio
-                audio_url = audio_info.get(title)
-                audio_filename = f'audio/{safe_title}.mp3'
-                if audio_url and not file_exists(title, 'audio'):
-                    audio_response = requests.get(audio_url)
-                    with open(audio_filename, 'wb') as audio_file:
-                        audio_file.write(audio_response.content)
-                    print(f"Téléchargé audio : {audio_filename}")
-                    total_file_count += 1
+                    # Ajouter au fichier de mapping avec le nom sécurisé et le titre original
+                    add_to_mapping_file(safe_title, title)
 
-        print(f"Nombre de fichiers traités sur la page {page_number} : {page_file_count}")
         page_number += 1
 
     print(f"Total de fichiers traités : {total_file_count}")
 
-def get_podcast_info(rss_url):
-    """Extrait le titre et l'image principale du podcast depuis le flux RSS."""
-    response = requests.get(rss_url)
-    root = ET.fromstring(response.content)
-    channel = root.find('channel')
-
-    if channel is None:
-        raise ValueError("Le flux RSS ne contient pas d'élément <channel>.")
-
-    # Récupérer le titre
-    title_element = channel.find('title')
-    title = title_element.text if title_element is not None else "Podcast sans titre"
-
-    # Récupérer l'URL de l'image (si disponible)
-    image_element = channel.find('image')
-    if image_element is not None:
-        url_element = image_element.find('url')
-        image_url = url_element.text if url_element is not None else None
-    else:
-        image_url = None
-
-    return title, image_url
-
- 
-
-def setup_podcast_folder(rss_url):
-    """Étape 2 : Crée le dossier principal du podcast et les fichiers nécessaires."""
-    podcast_title, podcast_image_url = get_podcast_info(rss_url)
-    safe_podcast_title = f"0+] {podcast_title}"
-
-    # Créer le dossier principal du podcast
-    os.makedirs(safe_podcast_title, exist_ok=True)
-    print(f"Dossier du podcast créé : {safe_podcast_title}")
-
-    # Créer les fichiers `title.txt` et `main-title.txt`
-    title_file_path = os.path.join(safe_podcast_title, "title.txt")
-    main_title_file_path = os.path.join(safe_podcast_title, "main-title.txt")
-
-    for file_path in [title_file_path, main_title_file_path]:
-        with open(file_path, 'w', encoding='utf-8') as file:
-            file.write(podcast_title)
-    print(f"Fichiers 'title.txt' et 'main-title.txt' créés dans {safe_podcast_title}")
-
-    # Télécharger et sauvegarder l'image du podcast si elle existe
-    if podcast_image_url:
-        response = requests.get(podcast_image_url)
-        img = Image.open(BytesIO(response.content))
-
-        # Sauvegarder l'image en tant que `main-title.png` et `cover.png`
-        main_title_image_path = os.path.join(safe_podcast_title, "main-title.png")
-        cover_image_path = os.path.join(safe_podcast_title, "cover.png")
-
-        for image_path in [main_title_image_path, cover_image_path]:
-            img.save(image_path, "PNG")
-        print(f"Images 'main-title.png' et 'cover.png' créées dans {safe_podcast_title}")
-    else:
-        print("Aucune image disponible pour ce podcast.")
-
-    # Créer le dossier "0" (dossier de choix)
-    choice_folder_path = os.path.join(safe_podcast_title, "0")
-    os.makedirs(choice_folder_path, exist_ok=True)
-    print(f"Dossier de choix créé : {choice_folder_path}")
-
-
 def main():
     """Point d'entrée principal."""
-    print("Début du script.")
-    # Étape 1 : Télécharger les épisodes
-    download_episodes(RSS_URL)
+    parser = argparse.ArgumentParser(description="Scrape un site pour télécharger des podcasts.")
+    parser.add_argument("base_url", type=str, help="URL de base pour scraper les épisodes (exemple : 'https://www.radiofrance.fr/franceinter/podcasts/les-odyssees?p=')")
+    args = parser.parse_args()
 
-    # Étape 2 : Créer le dossier du podcast
-    setup_podcast_folder(RSS_URL)
+    print("Début du script.")
+    # Initialiser le fichier de mapping
+    initialize_mapping_file()
+    # Télécharger les épisodes
+    download_episodes(args.base_url+"?p=")
     print("Script terminé.")
 
 if __name__ == "__main__":
