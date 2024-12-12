@@ -1,3 +1,4 @@
 pillow==10.4.0
 feedparser==6.0.11
 requests==2.32.3
+gTTS==2.5.4
