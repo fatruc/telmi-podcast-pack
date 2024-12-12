@@ -180,19 +180,18 @@ def generate_audio_file(text, output_path):
     except Exception as e:
         print(f"Erreur lors de la génération de l'audio : {e}")
 
-def create_groups_dir(feed, choice_dir, reverse_order=False, clean_strings=False, generate_audio=False):
+def create_groups_dir(feed, choice_dir, reverse_order=False, clean_strings=False, generate_audio=False, grouping_enabled=True):
     episodes = feed.entries
     if reverse_order:
         episodes = episodes[::-1]
     total_episodes = len(episodes)
 
-    if total_episodes > 26:
+    if grouping_enabled and total_episodes > 26:
         groups = [episodes[i:i + 8] for i in range(0, total_episodes, 8)]
     else:
         groups = [episodes]
-    
-    is_single_group = len(groups) == 1
 
+    is_single_group = len(groups) == 1
     for group_index, group in enumerate(groups):
         if is_single_group:
             group_dir = choice_dir
@@ -262,7 +261,7 @@ def create_choice_dir(feed, main_dir, cover_image_path, reverse_order=False, cle
     
     shutil.copy(cover_image_path, os.path.join(choice_dir, 'title.png'))
     
-    create_groups_dir(feed, choice_dir, reverse_order, clean_strings, generate_audio)
+    create_groups_dir(feed, choice_dir, reverse_order, clean_strings, generate_audio, not no_grouping)
 
 def download_podcast(rss_url, reverse_order=False, clean_strings=False, generate_audio=False):
     feed = feedparser.parse(rss_url)
@@ -310,6 +309,7 @@ if len(sys.argv) < 2:
     sys.exit(1)
 
 rss_url = sys.argv[1]
+no_grouping = 'no_grouping' in sys.argv
 reverse_order = 'reverse_order' in sys.argv
 clean_strings = 'clean_strings' in sys.argv
 generate_audio = 'generate_audio' in sys.argv
