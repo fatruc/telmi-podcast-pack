@@ -101,9 +101,16 @@ S'ils existent, le script va utiliser le dossier images et le fichier mapping.cs
 
 Voici les commandes à exécuter pour quelques podcasts libre
 
-- pomme d'api
-
+### pomme d'api
+```bash
 python my-telmi-podcast.py https://feed.ausha.co/B6r8OclKP6gn  generate_audio clean_strings add_episode_title
+```
+
+### une histoire et oli
+```bash
+python scrapper_radiofrance.py https://www.radiofrance.fr/franceinter/podcasts/une-histoire-et-oli
+python my-telmi-podcast.py https://radio-france-rss.aerion.workers.dev/rss/d555ed4e-dbe5-4908-912e-b3169f9ceede clean_strings generate_audio
+```
 
 # Contributions
 Si vous souhaitez contribuer à ce projet, n'hésitez pas à soumettre des pull requests. Vous pouvez également ouvrir des issues pour signaler des bugs ou des suggestions d'amélioration.
