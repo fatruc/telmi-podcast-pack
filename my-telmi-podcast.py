@@ -10,7 +10,24 @@ from PIL import Image, ImageDraw, ImageFont
 import csv
 from gtts import gTTS  # Importer gTTS pour la synthèse vocale
 
-size=(640, 480)
+screen_size = (640, 480)
+
+cover_size = (480,480)
+
+pastel_colors = [
+    (255, 255, 204),
+    (255, 204, 153),
+    (255, 204, 204),
+    (255, 153, 204),
+    (255, 204, 255),
+    (204, 153, 255),
+    (204, 204, 255),
+    (153, 204, 255),
+    (204, 255, 255),
+    (153, 255, 204),
+    (204, 255, 204),
+    (204, 255, 153),
+]
 
 # Variable globale pour stocker le mapping
 _mapping_cache = None
@@ -116,8 +133,7 @@ def download_file(url, filename):
 
 import textwrap
 
-def resize_image(input_path, output_path, text=None):
-    global size
+def resize_image(input_path, output_path, size, text):
     try:
         with Image.open(input_path) as img:
             target_height = size[1]
@@ -137,14 +153,15 @@ def resize_image(input_path, output_path, text=None):
                 text_width = bbox[2] - bbox[0]
                 text_height = bbox[3] - bbox[1]
                 padding = 10
-                box_width = text_width + padding * 2
+                box_width = 640
                 box_height = text_height + padding * 2
 
                 # Créer un cadre semi-transparent
                 transparency = 200
                 box = Image.new("RGBA", (box_width, box_height), (255, 255, 255, transparency))
                 draw_box = ImageDraw.Draw(box)
-                draw_box.rectangle([0, 0, box_width, box_height], fill=(255, 255, 255, transparency), outline="black", width=2)
+                draw_box.rectangle([0, 0, box_width, box_height], fill=(255, 255, 255, transparency))
+              
 
                 # Ajouter le cadre à l'image
                 box_x = size[0] // 2 - box_width // 2
@@ -152,7 +169,7 @@ def resize_image(input_path, output_path, text=None):
                 background.paste(box, (box_x, box_y), box)
 
                 # Ajouter le texte centré dans le cadre
-                text_x = box_x + padding
+                text_x = size[0] // 2 - text_width // 2
                 text_y = box_y
                 draw.text((text_x, text_y), wrapped_text, fill="black", font=font)
 
@@ -163,31 +180,19 @@ def resize_image(input_path, output_path, text=None):
 
 
 def create_text_image(output_path, text, font_path="Pacifico-Regular.ttf", color_index=0):
-    global size
-    pastel_colors = [
-        (255, 255, 204),
-        (255, 204, 153),
-        (255, 204, 204),
-        (255, 153, 204),
-        (255, 204, 255),
-        (204, 153, 255),
-        (204, 204, 255),
-        (153, 204, 255),
-        (204, 255, 255),
-        (153, 255, 204),
-        (204, 255, 204),
-        (204, 255, 153),
-    ]
+    global cover_size
+    global pastel_colors
+
 
     try:
         background_color = pastel_colors[color_index % len(pastel_colors)]
-        img = Image.new("RGB", size, background_color)
+        img = Image.new("RGB", cover_size, background_color)
         draw = ImageDraw.Draw(img)
         font = ImageFont.truetype(font_path, size=36)
 
         margin = 19
         text_lines = text.split('\n')
-        available_height = size[1] - 2 * margin
+        available_height = cover_size[1] - 2 * margin
         line_height = 36
         total_text_height = line_height * len(text_lines)
 
@@ -219,6 +224,7 @@ def generate_audio_file(text, output_path):
         print(f"Erreur lors de la génération de l'audio : {e}")
 
 def create_groups_dir(feed, choice_dir, reverse_order=False, clean_strings=False, generate_audio=False, disable_grouping=False, add_episode_title=False):
+    global screen_size
     episodes = feed.entries
     if reverse_order:
         episodes = episodes[::-1]
@@ -284,9 +290,9 @@ def create_groups_dir(feed, choice_dir, reverse_order=False, clean_strings=False
                 if episode_image_url:
                     episode_image_path = os.path.join(episode_subdir, 'title.png')
                     download_file(episode_image_url, episode_image_path)
-                    resize_image(episode_image_path, episode_image_path, entry.title if add_episode_title else None)
+                    resize_image(episode_image_path, episode_image_path, screen_size, entry.title if add_episode_title else None)
 
-def create_choice_dir(feed, main_dir, cover_image_path, reverse_order=False, clean_strings=False, generate_audio=False, disable_grouping=False, add_episode_title=False):
+def create_choice_dir(feed, main_dir, title_image_path, reverse_order=False, clean_strings=False, generate_audio=False, disable_grouping=False, add_episode_title=False):
     choice_dir = os.path.join(main_dir, '0')
     os.makedirs(choice_dir, exist_ok=True)
     title_text = "Quelle épisode veux-tu écouter ?"
@@ -297,11 +303,13 @@ def create_choice_dir(feed, main_dir, cover_image_path, reverse_order=False, cle
         with open(os.path.join(choice_dir, 'title.txt'), 'w', encoding='utf-8') as f:
             f.write(title_text)
     
-    shutil.copy(cover_image_path, os.path.join(choice_dir, 'title.png'))
+    shutil.copy(title_image_path, os.path.join(choice_dir, 'title.png'))
     
     create_groups_dir(feed, choice_dir, reverse_order, clean_strings, generate_audio, disable_grouping, add_episode_title)
 
 def download_podcast(rss_url, reverse_order=False, clean_strings=False, generate_audio=False, disable_grouping=False, add_episode_title=False):
+    global screen_size
+    global cover_size
     feed = feedparser.parse(rss_url)
     podcast_title = feed.feed.title
     podcast_image_url = feed.feed.image.href if 'image' in feed.feed else None
@@ -327,10 +335,10 @@ def download_podcast(rss_url, reverse_order=False, clean_strings=False, generate
     cover_image_path = os.path.join(main_dir, 'cover.png')
     if podcast_image_url:
         download_file(podcast_image_url, main_image_path)
-        resize_image(main_image_path, main_image_path)
-        resize_image(main_image_path, cover_image_path)
+        resize_image(main_image_path, main_image_path, screen_size, None)
+        resize_image(main_image_path, cover_image_path, cover_size, None)
     
-    create_choice_dir(feed, main_dir, cover_image_path, reverse_order, clean_strings, generate_audio, disable_grouping, add_episode_title)
+    create_choice_dir(feed, main_dir, main_image_path, reverse_order, clean_strings, generate_audio, disable_grouping, add_episode_title)
 
     zip_path = f"{main_dir}.zip"
     zip_folder(main_dir, zip_path)

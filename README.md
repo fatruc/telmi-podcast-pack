@@ -60,6 +60,13 @@ Exécutez le script Python en fournissant l'URL du flux RSS du podcast que vous 
   python3 download_podcast.py <RSS_URL>
 ```
 
+Vous pouvez également passer les paramètres suivants pour modifier le comportement par défaut:
+- reverse_order pour traiter les épisodes dans l'ordre inverse (du plus ancien au plus récent)
+- clean_strings pour modifier les titres des épisodes afin de rendre la synthèse vocale plus correcte
+- generate_audio pour utiliser la synthèse vocale de google plutôt que celle utilisée par telmi sync
+- disable_grouping pour empêcher la création automatique de groupes
+- add_episode_title pour ajouter le titre des épisodes sur la vignette des épisodes
+
 Remplacez <RSS_URL> par l'URL du flux RSS du podcast. Par exemple :
 
 ```bash
@@ -92,6 +99,11 @@ Le script va créer un dossier images avec les vignettes des épisodes, ainsi qu
 
 S'ils existent, le script va utiliser le dossier images et le fichier mapping.csv pour créer un pack sous forme d'un fichier zip importable dans telmisync
 
+Voici les commandes à exécuter pour quelques podcasts libre
+
+- pomme d'api
+
+python my-telmi-podcast.py https://feed.ausha.co/B6r8OclKP6gn  generate_audio clean_strings add_episode_title
 
 # Contributions
 Si vous souhaitez contribuer à ce projet, n'hésitez pas à soumettre des pull requests. Vous pouvez également ouvrir des issues pour signaler des bugs ou des suggestions d'amélioration.
