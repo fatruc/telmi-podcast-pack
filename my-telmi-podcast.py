@@ -49,22 +49,30 @@ def charger_mapping(chemin_fichier="mapping.csv"):
 
 def traduire(chaine, chemin_fichier="mapping.csv"):
     global _mapping_cache
+    
+    title = clean_string(chaine)
+    safe_title = "".join(x for x in title if x.isalnum() or x in (" ", "_")).rstrip()
+    
     if _mapping_cache is None:
         charger_mapping(chemin_fichier)
     
     # Vérifier si la chaîne est dans le mapping
-    if chaine in _mapping_cache:
-        return _mapping_cache[chaine]
+    if safe_title in _mapping_cache:
+        return _mapping_cache[safe_title]
     
-    # Si la chaîne n'est pas trouvée, l'ajouter au fichier CSV
+    # Si la chaîne n'est pas trouvée, l'ajouter au fichier CSV et au cache
     try:
         with open(chemin_fichier, mode="a", encoding="utf-8", newline='') as fichier_csv:
             writer = csv.writer(fichier_csv, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-            writer.writerow([chaine, chaine])  # Ajouter la chaîne dans les deux colonnes
+            writer.writerow([safe_title, title])  # Ajouter la chaîne dans les deux colonnes
+            
+            # Ajouter au _mapping_cache
+            _mapping_cache[safe_title] = title
     except Exception as e:
         print(f"Erreur lors de l'ajout au fichier CSV : {e}")
     
-    return chaine  # Retourner la chaîne d'origine si elle n'est pas trouvée
+    return title  # Retourner la chaîne d'origine si elle n'est pas trouvée
+
 
 
 
