@@ -284,7 +284,7 @@ def create_groups_dir(feed, choice_dir, reverse_order=False, clean_strings=False
             local_file_path = f'images/{local_file_name}.jpg'
 
             if os.path.isfile(local_file_path):
-                shutil.copy(local_file_name, os.path.join(episode_subdir, 'title.png'))
+                shutil.copy(local_file_path, os.path.join(episode_subdir, 'title.png'))
             else:
                 episode_image_url = entry.get('image', {}).get('href')
                 if episode_image_url:
