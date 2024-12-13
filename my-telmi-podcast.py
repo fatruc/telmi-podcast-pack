@@ -51,7 +51,21 @@ def traduire(chaine, chemin_fichier="mapping.csv"):
     global _mapping_cache
     if _mapping_cache is None:
         charger_mapping(chemin_fichier)
-    return _mapping_cache.get(chaine, chaine)
+    
+    # Vérifier si la chaîne est dans le mapping
+    if chaine in _mapping_cache:
+        return _mapping_cache[chaine]
+    
+    # Si la chaîne n'est pas trouvée, l'ajouter au fichier CSV
+    try:
+        with open(chemin_fichier, mode="a", encoding="utf-8") as fichier_csv:
+            writer = csv.writer(fichier_csv)
+            writer.writerow([chaine, chaine])  # Ajouter la chaîne dans les deux colonnes
+    except Exception as e:
+        print(f"Erreur lors de l'ajout au fichier CSV : {e}")
+    
+    return chaine  # Retourner la chaîne d'origine si elle n'est pas trouvée
+
 
 def nombre_en_lettres(n):
     if not (0 <= n <= 999):

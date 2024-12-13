@@ -101,9 +101,40 @@ S'ils existent, le script va utiliser le dossier images et le fichier mapping.cs
 
 Voici les commandes à exécuter pour quelques podcasts libre
 
-- pomme d'api
-
+### pomme d'api
+```bash
 python my-telmi-podcast.py https://feed.ausha.co/B6r8OclKP6gn  generate_audio clean_strings add_episode_title
+```
+
+### une histoire et oli
+```bash
+python scrapper_radiofrance.py https://www.radiofrance.fr/franceinter/podcasts/une-histoire-et-oli
+python my-telmi-podcast.py https://radio-france-rss.aerion.workers.dev/rss/d555ed4e-dbe5-4908-912e-b3169f9ceede clean_strings generate_audio
+```
+
+### les odyssés
+```bash
+python scrapper_radiofrance.py https://www.radiofrance.fr/franceinter/podcasts/les-odyssees
+python my-telmi-podcast.py https://radio-france-rss.aerion.workers.dev/rss/c361798b-d6e3-4282-ba0a-ebb051b9e424 clean_strings generate_audio
+```
+
+### Tina et le trésor de nefertiti
+```bash
+python scrapper_radiofrance.py https://www.radiofrance.fr/franceinter/podcasts/tina-et-le-tresor-de-nefertiti
+python my-telmi-podcast.py https://radio-france-rss.aerion.workers.dev/rss/42dc42b4-ea66-4bbb-98a8-747807cfe7bf clean_strings generate_audio add_episode_title
+```
+
+### Bestioles
+```bash
+python scrapper_radiofrance.py https://www.radiofrance.fr/franceinter/podcasts/bestioles
+python my-telmi-podcast.py https://radio-france-rss.aerion.workers.dev/rss/a80ecbd5-df3d-4c9d-bee7-4e3d9efc1974 clean_strings generate_audio add_episode_title
+```
+
+### Les contes de la Maison Ronde
+```bash
+python scrapper_radiofrance.py https://www.radiofrance.fr/francemusique/podcasts/les-contes-de-la-maison-ronde
+python my-telmi-podcast.py https://radio-france-rss.aerion.workers.dev/rss/23f2bcb0-573c-4212-bfc4-28db078a0f44 clean_strings generate_audio
+```
 
 # Contributions
 Si vous souhaitez contribuer à ce projet, n'hésitez pas à soumettre des pull requests. Vous pouvez également ouvrir des issues pour signaler des bugs ou des suggestions d'amélioration.
