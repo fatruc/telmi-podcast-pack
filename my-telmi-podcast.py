@@ -58,13 +58,14 @@ def traduire(chaine, chemin_fichier="mapping.csv"):
     
     # Si la chaîne n'est pas trouvée, l'ajouter au fichier CSV
     try:
-        with open(chemin_fichier, mode="a", encoding="utf-8") as fichier_csv:
-            writer = csv.writer(fichier_csv)
+        with open(chemin_fichier, mode="a", encoding="utf-8", newline='') as fichier_csv:
+            writer = csv.writer(fichier_csv, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
             writer.writerow([chaine, chaine])  # Ajouter la chaîne dans les deux colonnes
     except Exception as e:
         print(f"Erreur lors de l'ajout au fichier CSV : {e}")
     
     return chaine  # Retourner la chaîne d'origine si elle n'est pas trouvée
+
 
 
 def nombre_en_lettres(n):
