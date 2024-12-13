@@ -62,8 +62,8 @@ def traduire(chaine, chemin_fichier="mapping.csv"):
     
     # Si la chaîne n'est pas trouvée, l'ajouter au fichier CSV et au cache
     try:
-        with open(chemin_fichier, mode="a", encoding="utf-8", newline='') as fichier_csv:
-            writer = csv.writer(fichier_csv, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+        with open(chemin_fichier, mode="a", encoding="utf-8-sig", newline='') as fichier_csv:
+            writer = csv.writer(fichier_csv, delimiter=';')
             writer.writerow([safe_title, title])  # Ajouter la chaîne dans les deux colonnes
             
             # Ajouter au _mapping_cache
