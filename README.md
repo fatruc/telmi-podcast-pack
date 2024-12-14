@@ -103,7 +103,7 @@ Voici les commandes à exécuter pour quelques podcasts libre
 
 ### pomme d'api
 ```bash
-python my-telmi-podcast.py https://feed.ausha.co/B6r8OclKP6gn  generate_audio clean_strings add_episode_title
+my-telmi-podcast.py https://feed.ausha.co/B6r8OclKP6gn  generate_audio clean_strings add_episode_title reverse_order
 ```
 
 ### une histoire et oli
