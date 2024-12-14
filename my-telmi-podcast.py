@@ -9,6 +9,7 @@ import zipfile
 from PIL import Image, ImageDraw, ImageFont
 import csv
 from gtts import gTTS  # Importer gTTS pour la synthèse vocale
+import textwrap
 
 screen_size = (640, 480)
 
@@ -52,6 +53,8 @@ def traduire(chaine, chemin_fichier="mapping.csv"):
     
     title = clean_string(chaine)
     safe_title = "".join(x for x in title if x.isalnum() or x in (" ", "_")).rstrip()
+    print(f"dafe title {safe_title}")
+
     
     if _mapping_cache is None:
         charger_mapping(chemin_fichier)
@@ -154,7 +157,7 @@ def download_file(url, filename):
         print(f"Erreur: {e}")
 
 
-import textwrap
+
 
 def resize_image(input_path, output_path, size, text):
     try:
@@ -203,39 +206,65 @@ def resize_image(input_path, output_path, size, text):
 
 
 def create_text_image(output_path, text, font_path="Pacifico-Regular.ttf", color_index=0):
-    global cover_size
+    global screen_size
     global pastel_colors
-
 
     try:
         background_color = pastel_colors[color_index % len(pastel_colors)]
-        img = Image.new("RGB", cover_size, background_color)
+        img = Image.new("RGB", screen_size, background_color)
         draw = ImageDraw.Draw(img)
-        font = ImageFont.truetype(font_path, size=36)
+        font = ImageFont.truetype(font_path, size=26)
 
         margin = 19
-        text_lines = text.split('\n')
-        available_height = cover_size[1] - 2 * margin
+        max_width = 640  # Largeur maximale en pixels pour une ligne de texte
+        available_height = screen_size[1] - 2 * margin
         line_height = 36
-        total_text_height = line_height * len(text_lines)
 
+        # Fonction pour ajuster le texte en fonction de la largeur maximale
+        def wrap_text(text, max_width, font):
+            wrapped_lines = []
+            words = text.split()
+            line = ""
+            for word in words:
+                test_line = f"{line} {word}".strip()
+                bbox = draw.textbbox((0, 0), test_line, font=font)
+                if bbox[2] > (max_width - 2 * margin):  # Vérifie si la largeur dépasse max_width
+                    wrapped_lines.append(line)
+                    line = word  # Démarre une nouvelle ligne avec le mot actuel
+                else:
+                    line = test_line
+            if line:  # Ajoute la dernière ligne si elle existe
+                wrapped_lines.append(line)
+            return wrapped_lines
+
+        # Découpe le texte pour qu'il tienne dans la largeur spécifiée
+        text_lines = []
+        for line in text.split('\n'):
+            text_lines.extend(wrap_text(line, max_width, font))
+
+        # Calcule la hauteur totale et ajuste la taille de la police si nécessaire
+        total_text_height = line_height * len(text_lines)
         if total_text_height > available_height:
             font_size = int(font.size * available_height / total_text_height)
             font = ImageFont.truetype(font_path, font_size)
             line_height = font_size
             total_text_height = line_height * len(text_lines)
 
+        # Calcule l'espacement vertical entre les lignes
         spacing = (available_height - total_text_height) / (len(text_lines) + 1)
         y_offset = margin
 
+        # Dessine le texte sur l'image
         for line in text_lines:
             draw.text((margin, y_offset), line, font=font, fill="black")
             y_offset += line_height + spacing
 
+        # Sauvegarde l'image générée
         img.save(output_path)
 
     except Exception as e:
         print(f"Erreur lors de la création de l'image : {e}")
+
 
 def generate_audio_file(text, output_path):
     print(f"Génération de l'audio pour : {text}")
@@ -276,7 +305,7 @@ def create_groups_dir(feed, choice_dir, reverse_order=False, clean_strings=False
                 with open(os.path.join(group_dir, 'title.txt'), 'w', encoding='utf-8') as f:
                     f.write(title_text)
         
-            episode_titles = "\n".join([traduire(ep.title) for ep in group])
+            episode_titles = "\n- ".join([traduire(ep.title) for ep in group])
             if clean_strings:
                 episode_titles = clean_string(episode_titles)
 
@@ -313,7 +342,7 @@ def create_groups_dir(feed, choice_dir, reverse_order=False, clean_strings=False
                 if episode_image_url:
                     episode_image_path = os.path.join(episode_subdir, 'title.png')
                     download_file(episode_image_url, episode_image_path)
-                    resize_image(episode_image_path, episode_image_path, screen_size, entry.title if add_episode_title else None)
+                    resize_image(episode_image_path, episode_image_path, screen_size, title_text if add_episode_title else None)
 
 def create_choice_dir(feed, main_dir, title_image_path, reverse_order=False, clean_strings=False, generate_audio=False, disable_grouping=False, add_episode_title=False):
     choice_dir = os.path.join(main_dir, '0')
