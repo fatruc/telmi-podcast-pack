@@ -53,9 +53,7 @@ def traduire(chaine, chemin_fichier="mapping.csv"):
     
     title = clean_string(chaine)
     safe_title = "".join(x for x in title if x.isalnum() or x in (" ", "_")).rstrip()
-    print(f"dafe title {safe_title}")
-
-    
+        
     if _mapping_cache is None:
         charger_mapping(chemin_fichier)
     
@@ -306,6 +304,8 @@ def create_groups_dir(feed, choice_dir, reverse_order=False, clean_strings=False
                     f.write(title_text)
         
             episode_titles = "\n- ".join([traduire(ep.title) for ep in group])
+            episode_titles = f"- {episode_titles}"
+
             if clean_strings:
                 episode_titles = clean_string(episode_titles)
 
